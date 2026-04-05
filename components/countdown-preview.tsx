@@ -2,18 +2,18 @@ import { AppTheme, LockScreenSafeZone, WallpaperConfig } from '@/constants/theme
 import { useProgress } from '@/contexts/progress-context';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Platform,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
+    Platform,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from 'react-native';
 import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from 'react-native-reanimated';
 
 type Props = {

@@ -1,8 +1,8 @@
 import { DEFAULT_PROGRESS, DayLog, ProgressConfig } from '@/constants/theme';
-import { configStorage } from './config-storage';
 import * as Notifications from 'expo-notifications';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
+import { configStorage } from './config-storage';
 
 type ProgressContextType = {
   progress: ProgressConfig;
