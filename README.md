@@ -1,130 +1,129 @@
-# Welcome to your Expo app 👋
+# 🚀 LockIn
+### Turn Your Lock Screen Into Progress
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+LockIn transforms your lock screen into a live progress system — helping you stay consistent, aware, and focused every single day.
 
-## Get started
+---
 
-1. Install dependencies
+## 📌 The Idea
 
-   ```bash
-   npm install
-   ```
+We don’t fail because we lack goals.  
+We fail because we stop seeing them.
 
-2. Start the app
+LockIn keeps your progress visible — every time you unlock your phone.
 
-   ```bash
-   npx expo start
-   ```
+No extra effort. No complicated tracking.  
+Just a constant reminder of where you stand.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## ✨ Features
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- 📊 Time tracking
+- 🎯 Goal setting
+- 📅 Daily accountability
+- 🖼️ Live lock screen wallpapers
+- 🎨 Custom color themes
+- ⚡ Simple and minimal UI
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 📊 Modes
 
-```bash
-npm run reset-project
-```
+### 🗓️ Year Mode
+- Track your entire year
+- Visualize time passed
+- Stay aware of long-term goals
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 🎯 Custom Mode
+- Set your own duration
+- Build focused challenges
+- Stay committed
 
-## Learn more
+### ✅ Progress Mode
+- Add daily tasks
+- Track completion
+- Build consistency
 
-To learn more about developing your project with Expo, look at the following resources:
+---
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🖼️ Live Wallpaper Experience
 
-## Feedback setup (no database)
+Your lock screen shows:
+- Days completed / remaining
+- Dynamic progress bar
+- Goal title
+- Clean visuals
 
-The app includes a Settings -> Feedback form that submits to a webhook.
-To enable it, set this environment variable before running/building the app:
+Your goal becomes part of your daily routine.
 
-```bash
-EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL=https://script.google.com/macros/s/your-web-app-id/exec
-```
+---
 
-Quick start in this repo:
+## 🎨 Customization
 
-1. Copy `.env.example` to `.env.local`.
-2. Put your Apps Script Web App URL in `EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL`.
-3. Restart Metro and run `npm run android`.
-4. Open Settings -> Send Feedback and submit a test message.
-5. Verify a new row appears in your Google Sheet.
+- Background colors
+- Progress bar colors
+- Completed & remaining day tones
 
-### Recommended backend: Google Apps Script + Google Sheet
+Simple. Personal. Effective.
 
-1. Create a Google Sheet with columns:
-    `createdAt`, `message`, `contact`, `platform`, `appVersion`, `mode`, `targetDays`, `progressEnabled`, `taskCount`
-2. Open Extensions -> Apps Script and deploy a Web App (execute as you, access: anyone with link).
-3. Use this script and replace `YOUR_SHEET_ID` and `Feedback`.
+---
 
-```javascript
-function doPost(e) {
-   try {
-      var sheet = SpreadsheetApp.openById('YOUR_SHEET_ID').getSheetByName('Feedback');
-      var body = JSON.parse(e.postData.contents || '{}');
-      var ctx = body.context || {};
+## 📥 Installation
 
-      sheet.appendRow([
-         body.createdAt || new Date().toISOString(),
-         body.message || '',
-         body.contact || '',
-         ctx.platform || '',
-         ctx.appVersion || '',
-         ctx.mode || '',
-         ctx.targetDays || '',
-         ctx.progressEnabled || false,
-         ctx.taskCount || 0,
-      ]);
+1. Download the APK from Releases  
+2. Open it on your Android device  
+3. Enable "Install from unknown sources"  
+4. Tap Install  
 
-      return ContentService
-         .createTextOutput(JSON.stringify({ ok: true }))
-         .setMimeType(ContentService.MimeType.JSON);
-   } catch (err) {
-      return ContentService
-         .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
-         .setMimeType(ContentService.MimeType.JSON);
-   }
-}
-```
+---
 
-After deployment, paste the Web App URL into `EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL`.
-You can view all user feedback directly in that Google Sheet.
+## 🛠 Tech Stack
 
-### Optional endpoint smoke test (PowerShell)
+- Android (Java/Kotlin)
+- XML UI
+- Android SDK
 
-Use this to verify your webhook before testing in-app:
+---
 
-```powershell
-$url = "https://script.google.com/macros/s/your-web-app-id/exec"
-$payload = @{
-   message = "LockIn feedback endpoint test"
-   contact = ""
-   createdAt = (Get-Date).ToString("o")
-   context = @{
-      platform = "android"
-      appVersion = "1.0.0"
-      mode = "year"
-      targetDays = 365
-      progressEnabled = $true
-      taskCount = 3
-   }
-} | ConvertTo-Json -Depth 5
+## ⚠️ Note
 
-Invoke-RestMethod -Uri $url -Method Post -Body $payload -ContentType "application/json"
-```
+- This app is in early stage  
+- Features will improve over time  
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 💬 Feedback
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Your feedback helps improve LockIn.  
+Feel free to share suggestions or report issues.
+
+---
+
+## 📌 Roadmap (Upcoming)
+
+- Better UI animations  
+- More customization options  
+- Data backup & sync  
+- Performance improvements  
+
+---
+
+## 🔒 License
+
+This project is not open for reuse or redistribution without permission.
+
+---
+
+## 🙌 Author
+
+Built by Roopak Sai
+
+---
+
+## 💡 Philosophy
+
+LockIn is not just a tracker —  
+it’s a daily visual commitment to your goals.
+
+Stay consistent. Stay aware. Stay LockIn.
