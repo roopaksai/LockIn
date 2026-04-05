@@ -1,10 +1,8 @@
 import { DEFAULT_PROGRESS, DayLog, ProgressConfig } from '@/constants/theme';
 import { configStorage } from './config-storage';
 import * as Notifications from 'expo-notifications';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { NativeModules, Platform, AppState } from 'react-native';
-
-const { WallpaperModule } = NativeModules;
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Platform, AppState } from 'react-native';
 
 type ProgressContextType = {
   progress: ProgressConfig;
@@ -73,6 +71,9 @@ async function scheduleReminder(hour: number, minute: number) {
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState<ProgressConfig>(DEFAULT_PROGRESS);
   const [lastViewed, setLastViewed] = useState(todayKey());
+  const hasLoadedRef = useRef(false);
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load from storage on mount
   useEffect(() => {
@@ -92,8 +93,71 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('Failed to load progress data:', e);
         // Use defaults
+      } finally {
+        hasLoadedRef.current = true;
       }
     })();
+  }, []);
+
+  // Persist progress data automatically so wallpaper/widget stays in sync.
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
+    }
+
+    persistTimeoutRef.current = setTimeout(async () => {
+      try {
+        await configStorage.save('progressData', JSON.stringify(progress));
+      } catch (e) {
+        console.warn('Failed to auto-save progress data:', e);
+      }
+    }, 250);
+
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+    };
+  }, [progress]);
+
+  // Keep reminder notification configuration in sync without touching it on every task toggle.
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+
+    notificationTimeoutRef.current = setTimeout(async () => {
+      try {
+        if (progress.enabled && progress.tasks.length > 0) {
+          await scheduleReminder(progress.reminderHour, progress.reminderMinute);
+        } else {
+          await Notifications.cancelAllScheduledNotificationsAsync();
+        }
+      } catch (e) {
+        console.warn('Failed to auto-sync reminder:', e);
+      }
+    }, 300);
+
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, [progress.enabled, progress.tasks, progress.reminderHour, progress.reminderMinute]);
+
+  useEffect(() => {
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Reset completed tasks when day changes
@@ -192,6 +256,13 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
   const save = useCallback(async () => {
     try {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+
       const json = JSON.stringify(progress);
       await configStorage.save('progressData', json);
 

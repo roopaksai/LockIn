@@ -1,6 +1,6 @@
 import { AppTheme, LockScreenSafeZone, WallpaperConfig } from '@/constants/theme';
 import { useProgress } from '@/contexts/progress-context';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import Animated, {
   Easing,
-  SharedValue,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
@@ -96,57 +94,29 @@ function PulsingDot({ size, color }: { size: number; color: string }) {
 }
 
 type GridDotProps = {
-  index: number;
   size: number;
   color: string;
   pulse: boolean;
-  animationKey: string;
-  completionSweep: SharedValue<number>;
 };
 
 function GridDot({
-  index,
   size,
   color,
   pulse,
-  animationKey,
-  completionSweep,
 }: GridDotProps) {
-  const reveal = useSharedValue(0);
-
-  useEffect(() => {
-    reveal.value = 0;
-    reveal.value = withDelay(
-      Math.min(index * 14, 460),
-      withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [animationKey, index, reveal]);
-
-  const dotAnimStyle = useAnimatedStyle(() => {
-    const distance = Math.abs(completionSweep.value - index);
-    const sweepBoost = completionSweep.value < 0 ? 0 : Math.max(0, 1 - distance / 5);
-
-    return {
-      opacity: 0.22 + reveal.value * 0.78,
-      transform: [{ scale: 0.9 + reveal.value * 0.1 + sweepBoost * 0.18 }],
-    };
-  });
+  if (pulse) {
+    return <PulsingDot size={size} color={color} />;
+  }
 
   return (
-    <Animated.View style={[styles.dotAnimationLayer, dotAnimStyle]}>
-      {pulse ? (
-        <PulsingDot size={size} color={color} />
-      ) : (
-        <View
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: color,
-          }}
-        />
-      )}
-    </Animated.View>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+      }}
+    />
   );
 }
 
@@ -177,7 +147,6 @@ function dateKeyForDay(dayOfYear: number, year: number): string {
 export default function CountdownPreview({ config, showProgress = false }: Props) {
   const { progress } = useProgress();
   const { width: screenWidth } = useWindowDimensions();
-  const completionSweep = useSharedValue(-1);
   const badgePulse = useSharedValue(0);
   const previewWidth = screenWidth - AppTheme.spacing.lg * 2;
   const previewHeight = previewWidth * 1.95;
@@ -229,28 +198,6 @@ export default function CountdownPreview({ config, showProgress = false }: Props
     totalDays > 0 ? Math.round((dayOfYear / totalDays) * 100) : 0;
   const isFullyComplete = totalDays > 0 && dayOfYear >= totalDays;
   const isCustomComplete = config.mode === 'custom' && isFullyComplete;
-  const [gridAnimationKey, setGridAnimationKey] = useState(0);
-  const wasCustomCompleteRef = useRef(isCustomComplete);
-
-  useEffect(() => {
-    setGridAnimationKey((key) => key + 1);
-  }, [config.mode, config.targetDays, config.customStartDate, totalDays, dayOfYear]);
-
-  useEffect(() => {
-    if (isCustomComplete && !wasCustomCompleteRef.current) {
-      completionSweep.value = 0;
-      completionSweep.value = withTiming(totalDays + 4, {
-        duration: 1100,
-        easing: Easing.out(Easing.cubic),
-      });
-    }
-
-    if (!isCustomComplete) {
-      completionSweep.value = -1;
-    }
-
-    wasCustomCompleteRef.current = isCustomComplete;
-  }, [completionSweep, isCustomComplete, totalDays]);
 
   useEffect(() => {
     if (isCustomComplete) {
@@ -275,7 +222,6 @@ export default function CountdownPreview({ config, showProgress = false }: Props
   const gridTop = previewHeight * LockScreenSafeZone.GRID_TOP_Y;
   const effectiveGridTop = isCustomComplete ? gridTop + previewHeight * 0.035 : gridTop;
   const labelBottom = previewHeight * (1 - LockScreenSafeZone.LABEL_Y);
-  const dotAnimationToken = `${gridAnimationKey}-${totalDays}-${dayOfYear}`;
 
   return (
     <View style={[styles.previewFrame, { width: previewWidth, height: previewHeight }]}> 
@@ -386,12 +332,9 @@ export default function CountdownPreview({ config, showProgress = false }: Props
                       justifyContent: 'center',
                     }}>
                     <GridDot
-                      index={i}
                       size={dotSize}
                       color={dotColor}
                       pulse={isCurrent && !isFullyComplete}
-                      animationKey={dotAnimationToken}
-                      completionSweep={completionSweep}
                     />
                   </View>
                 );
@@ -449,10 +392,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: '26%',
     backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  dotAnimationLayer: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   titleText: {
     position: 'absolute',

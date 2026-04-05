@@ -32,7 +32,7 @@ function formatDateKey(date: Date) {
 function NormalTab() {
   const { config, updateConfig, saveAndActivate, isActive, checkActive, requestWidgetAdd, hasActiveWidgets } =
     useWallpaper();
-  const { progress } = useProgress();
+  const { progress, setEnabled } = useProgress();
   const [widgetActive, setWidgetActive] = React.useState(false);
   const [customDaysInput, setCustomDaysInput] = useState(config.targetDays ? String(config.targetDays) : '');
   const goalTitleLength = config.goalTitle.trim().length;
@@ -54,6 +54,7 @@ function NormalTab() {
       // Ensure progress mode is disabled when setting wallpaper from Normal tab
       // Save directly with enabled=false (don't rely on async state update)
       const updated = { ...progress, enabled: false };
+      setEnabled(false);
       await configStorage.save('progressData', JSON.stringify(updated));
 
       // Now save wallpaper config and activate
@@ -125,6 +126,11 @@ function NormalTab() {
   };
 
   const handleModeChange = (mode: 'year' | 'custom') => {
+    if (mode === 'custom' && progress.enabled) {
+      Alert.alert('Progress Mode Uses Full Year', 'Disable Progress Mode to use Custom Days countdown.');
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const updates: Partial<Record<string, string | number>> = { mode };
     if (mode === 'year') {
@@ -261,7 +267,7 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 function ProgressModeTab() {
   const { progress, addTask, removeTask, toggleTaskDone, setReminderTime, setEnabled, save } =
     useProgress();
-  const { config } = useWallpaper();
+  const { config, updateConfig } = useWallpaper();
   const [newTask, setNewTask] = useState('');
   const [showSetup, setShowSetup] = useState(true);
 
@@ -277,6 +283,12 @@ function ProgressModeTab() {
   const todayDone = todayLog.completed.length;
   const todayTotal = progress.tasks.length;
   const todayPercent = todayTotal > 0 ? Math.round((todayDone / todayTotal) * 100) : 0;
+
+  useEffect(() => {
+    if (progress.enabled && config.mode !== 'year') {
+      updateConfig({ mode: 'year' });
+    }
+  }, [progress.enabled, config.mode, updateConfig]);
 
   const handleAddTask = () => {
     if (newTask.trim()) {
@@ -296,15 +308,15 @@ function ProgressModeTab() {
     toggleTaskDone(title);
   };
 
-  const handleProgressToggle = async (value: boolean) => {
+  const handleProgressToggle = (value: boolean) => {
+    if (value && config.mode !== 'year') {
+      updateConfig({ mode: 'year' });
+    }
+
     setEnabled(value);
-    // Save immediately when toggling progress on/off
-    try {
-      // Create updated progress object with new enabled state
-      const updated = { ...progress, enabled: value };
-      await configStorage.save('progressData', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to save progress state:', e);
+
+    if (value) {
+      setShowSetup(true);
     }
   };
 
