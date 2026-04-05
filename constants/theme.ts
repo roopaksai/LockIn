@@ -88,9 +88,9 @@ export const LockScreenSafeZone = {
   SAFE_BOTTOM: 0.87,
 
   /* Recommended element positions within the safe zone (fractions of height) */
-  TITLE_Y: 0.36,        // title text top
-  GRID_TOP_Y: 0.40,     // dot-grid top edge
-  GRID_BOTTOM_Y: 0.82,  // dot-grid bottom edge (max)
+  TITLE_Y: 0.33,        // title text top
+  GRID_TOP_Y: 0.37,     // dot-grid top edge
+  GRID_BOTTOM_Y: 0.79,  // dot-grid bottom edge (max)
   LABEL_Y: 0.84,        // "days remaining" label
 } as const;
 
