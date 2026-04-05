@@ -73,10 +73,13 @@ function PulsingDot({ size, color }: { size: number; color: string }) {
     );
   }, [scale]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: 2 - scale.value,
-  }));
+  const animStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: 2 - scale.value,
+    };
+  });
 
   return (
     <Animated.View
@@ -212,10 +215,13 @@ export default function CountdownPreview({ config, showProgress = false }: Props
     badgePulse.value = 0;
   }, [badgePulse, isCustomComplete]);
 
-  const completionBadgeAnimStyle = useAnimatedStyle(() => ({
-    opacity: 0.84 + badgePulse.value * 0.16,
-    transform: [{ scale: 1 + badgePulse.value * 0.015 }],
-  }));
+  const completionBadgeAnimStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: 0.84 + badgePulse.value * 0.16,
+      transform: [{ scale: 1 + badgePulse.value * 0.015 }],
+    };
+  });
 
   /* ── Vertical offsets — top 35% left for system clock ── */
   const titleTop = previewHeight * LockScreenSafeZone.TITLE_Y;

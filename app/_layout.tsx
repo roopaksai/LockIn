@@ -28,9 +28,25 @@ export const unstable_settings = {
 
 if (__DEV__) {
   configureReanimatedLogger({
-    level: ReanimatedLogLevel.warn,
+    level: ReanimatedLogLevel.error,
     strict: false,
   });
+
+  const reanimatedInlineStyleWarning =
+    "It looks like you might be using shared value's .value inside reanimated inline style.";
+
+  const runtime = globalThis as { __lockinWarnPatchApplied?: boolean };
+  if (!runtime.__lockinWarnPatchApplied) {
+    const originalWarn = console.warn as (...args: unknown[]) => void;
+    console.warn = ((...args: unknown[]) => {
+      const firstArg = args[0];
+      if (typeof firstArg === 'string' && firstArg.includes(reanimatedInlineStyleWarning)) {
+        return;
+      }
+      originalWarn(...args);
+    }) as typeof console.warn;
+    runtime.__lockinWarnPatchApplied = true;
+  }
 }
 
 export default function RootLayout() {

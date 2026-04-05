@@ -1,12 +1,19 @@
 import { AppTheme } from '@/constants/theme';
+import { useProgress } from '@/contexts/progress-context';
 import { useWallpaper } from '@/contexts/wallpaper-context';
+import { isFeedbackConfigured, submitFeedback } from '@/services/feedback-service';
+import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
+    Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -40,7 +47,14 @@ const REMAINING_PRESETS = [
 
 export default function SettingsScreen() {
   const { config, updateConfig, saveConfig } = useWallpaper();
+  const { progress } = useProgress();
   const insets = useSafeAreaInsets();
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackContact, setFeedbackContact] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const feedbackConfigured = isFeedbackConfigured();
 
   const handleSave = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -55,6 +69,62 @@ export default function SettingsScreen() {
   const handleColorSelect = (key: string, value: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     updateConfig({ [key]: value });
+  };
+
+  const closeFeedbackModal = () => {
+    if (submittingFeedback) return;
+    setFeedbackVisible(false);
+  };
+
+  const openFeedbackModal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFeedbackVisible(true);
+  };
+
+  const handleFeedbackSubmit = async () => {
+    const message = feedbackMessage.trim();
+
+    if (!message) {
+      Alert.alert('Feedback required', 'Please enter your feedback before submitting.');
+      return;
+    }
+
+    if (!feedbackConfigured) {
+      Alert.alert(
+        'Feedback unavailable',
+        'Feedback channel is not configured yet. Please set EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL.',
+      );
+      return;
+    }
+
+    try {
+      setSubmittingFeedback(true);
+
+      await submitFeedback({
+        message,
+        contact: feedbackContact,
+        context: {
+          mode: config.mode,
+          targetDays: config.targetDays,
+          progressEnabled: progress.enabled,
+          taskCount: progress.tasks.length,
+          appVersion: Constants.expoConfig?.version ?? 'unknown',
+          platform: Platform.OS,
+        },
+      });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setFeedbackMessage('');
+      setFeedbackContact('');
+      setFeedbackVisible(false);
+      Alert.alert('Thank you', 'Your feedback has been submitted.');
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const details = error instanceof Error ? error.message : 'Please try again in a moment.';
+      Alert.alert('Could not send feedback', details);
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   return (
@@ -204,8 +274,94 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        <View style={styles.supportDivider} />
+
+        {/* Feedback */}
+        <View style={styles.feedbackSection}>
+          <Text style={styles.sectionLabel}>SUPPORT</Text>
+          <Text style={styles.feedbackTitle}>Help us improve LockIn</Text>
+          <Text style={styles.feedbackHint}>
+            Share issues, ideas, or feature requests. We read every submission.
+          </Text>
+          <TouchableOpacity
+            style={styles.feedbackButton}
+            onPress={openFeedbackModal}
+            accessibilityLabel="Send feedback"
+            accessibilityRole="button">
+            <Text style={styles.feedbackButtonText}>SEND FEEDBACK</Text>
+          </TouchableOpacity>
+          {!feedbackConfigured && (
+            <Text style={styles.feedbackWarning}>
+              Developer note: set EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL to enable submissions.
+            </Text>
+          )}
+        </View>
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      <Modal
+        visible={feedbackVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeFeedbackModal}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>SEND FEEDBACK</Text>
+            <Text style={styles.modalSubtitle}>What can we improve?</Text>
+
+            <TextInput
+              value={feedbackMessage}
+              onChangeText={setFeedbackMessage}
+              placeholder="Tell us your feedback"
+              placeholderTextColor={AppTheme.colors.textDim}
+              multiline
+              textAlignVertical="top"
+              style={[styles.inputBase, styles.messageInput]}
+              editable={!submittingFeedback}
+            />
+
+            <TextInput
+              value={feedbackContact}
+              onChangeText={setFeedbackContact}
+              placeholder="Contact (optional email/telegram)"
+              placeholderTextColor={AppTheme.colors.textDim}
+              style={styles.inputBase}
+              editable={!submittingFeedback}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <Text style={styles.metaText}>
+              Anonymous app context is included (mode, task count, app version, platform).
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={closeFeedbackModal}
+                disabled={submittingFeedback}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel feedback">
+                <Text style={styles.modalCancelText}>CANCEL</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSubmitButton, submittingFeedback && styles.modalButtonDisabled]}
+                onPress={handleFeedbackSubmit}
+                disabled={submittingFeedback}
+                accessibilityRole="button"
+                accessibilityLabel="Submit feedback">
+                {submittingFeedback ? (
+                  <ActivityIndicator size="small" color={AppTheme.colors.background} />
+                ) : (
+                  <Text style={styles.modalSubmitText}>SUBMIT</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -292,6 +448,137 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: AppTheme.colors.accent,
     letterSpacing: 2,
+  },
+  feedbackHint: {
+    fontSize: 12,
+    color: AppTheme.colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: AppTheme.spacing.md,
+  },
+  supportDivider: {
+    height: 1,
+    backgroundColor: AppTheme.colors.border,
+    marginTop: AppTheme.spacing.lg,
+    marginBottom: AppTheme.spacing.lg,
+    opacity: 0.7,
+  },
+  feedbackSection: {
+    marginTop: AppTheme.spacing.sm,
+    marginBottom: AppTheme.spacing.lg,
+    padding: AppTheme.spacing.md + 2,
+    borderRadius: AppTheme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.borderLight,
+    backgroundColor: AppTheme.colors.surface,
+  },
+  feedbackTitle: {
+    fontSize: 14,
+    color: AppTheme.colors.text,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginBottom: AppTheme.spacing.xs,
+  },
+  feedbackButton: {
+    backgroundColor: AppTheme.colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.borderLight,
+    borderRadius: AppTheme.borderRadius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  feedbackButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: AppTheme.colors.text,
+    letterSpacing: 1.8,
+  },
+  feedbackWarning: {
+    marginTop: AppTheme.spacing.sm,
+    fontSize: 11,
+    color: AppTheme.colors.warning,
+    lineHeight: 16,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.68)',
+    justifyContent: 'center',
+    padding: AppTheme.spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: AppTheme.colors.surface,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.border,
+    borderRadius: AppTheme.borderRadius.lg,
+    padding: AppTheme.spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppTheme.colors.text,
+    letterSpacing: 1.8,
+  },
+  modalSubtitle: {
+    marginTop: 6,
+    marginBottom: AppTheme.spacing.md,
+    fontSize: 12,
+    color: AppTheme.colors.textSecondary,
+    letterSpacing: 0.3,
+  },
+  inputBase: {
+    backgroundColor: AppTheme.colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.border,
+    borderRadius: AppTheme.borderRadius.md,
+    color: AppTheme.colors.text,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    marginTop: AppTheme.spacing.sm,
+  },
+  messageInput: {
+    minHeight: 120,
+    maxHeight: 160,
+  },
+  metaText: {
+    marginTop: AppTheme.spacing.md,
+    fontSize: 11,
+    color: AppTheme.colors.textDim,
+    lineHeight: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: AppTheme.spacing.lg,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: AppTheme.borderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: AppTheme.colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.border,
+  },
+  modalSubmitButton: {
+    backgroundColor: AppTheme.colors.accent,
+  },
+  modalButtonDisabled: {
+    opacity: 0.65,
+  },
+  modalCancelText: {
+    color: AppTheme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  modalSubmitText: {
+    color: AppTheme.colors.background,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   infoSection: {
     marginTop: AppTheme.spacing.xl,
