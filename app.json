@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.sai_roopak.LockIn"]
+        "com.apple.security.application-groups": [
+          "group.com.sai_roopak.LockIn"
+        ]
       }
     },
     "android": {
